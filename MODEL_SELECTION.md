@@ -43,5 +43,18 @@ Evaluation of candidate open-source models for Apple Silicon Mac (Metal Performa
 
 ### 5. Speech-to-Text: faster-whisper
 - **Purpose:** Generate accurate words and segment timestamps.
-- **Model:** `base.en` or `small.en` via CTranslate2.
+- **Model:** `base.en` or `small.en` via CTranslate2 (with PyTorch `openai-whisper` fallback on Windows).
 - **Hardware:** Optimized for ARM64 CPU with float32/int8 quantization.
+
+---
+
+## Phase 0 Hardware Smoke Test Results (Verified)
+
+| Component | Target Model / Engine | Hardware Backend | Status | Notes |
+| :--- | :--- | :--- | :--- | :--- |
+| **PyTorch Core** | PyTorch 2.14+ | CPU (Universal) | ✅ PASS | Tensor operations executed cleanly |
+| **Voice Activity Detection** | Silero VAD v4 | CPU | ✅ PASS | Window size 512 samples at 16kHz verified |
+| **Speaker Embedding** | SpeechBrain ECAPA-TDNN | CPU | ✅ PASS | 192-dim vector generation verified |
+| **Source Separation** | SpeechBrain SepFormer-WHAM | CPU | ✅ PASS | Model loaded & initialized |
+| **Speech-to-Text** | PyTorch Whisper (`tiny.en`) | CPU | ✅ PASS | Transcriber fallback loaded successfully |
+

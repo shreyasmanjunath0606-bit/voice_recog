@@ -29,27 +29,27 @@ Extract audio from the video, detect speech activity (VAD), enroll speaker voice
 ## 📋 Step-by-Step Task Checklist
 
 ### Milestone 1: Phase 0 (Audio) — Hardware Smoke Test
-- [ ] Test SpeechBrain (ECAPA-TDNN) and faster-whisper on Apple Silicon.
-- [ ] Verify if SepFormer / Conv-TasNet runs on MPS or if it cleanly falls back to CPU.
-- [ ] Record hardware execution results in `MODEL_SELECTION.md`.
+- [x] Test SpeechBrain (ECAPA-TDNN) and faster-whisper on Apple Silicon.
+- [x] Verify if SepFormer / Conv-TasNet runs on MPS or if it cleanly falls back to CPU.
+- [x] Record hardware execution results in `MODEL_SELECTION.md`.
 
 ### Milestone 2: Phase 6 — Audio Extraction & VAD
-- [ ] In `extractor.py`, implement `extract_waveform` using PyAV, `ffmpeg`, or `librosa`.
-- [ ] Ensure all audio is converted to **16,000 Hz, mono channel, float32 [-1.0, 1.0]**.
-- [ ] In `vad.py`, integrate **Silero VAD** (`torch.hub.load('snakers4/silero-vad')`).
-- [ ] Return list of `SpeechSegment(start_sec=..., end_sec=..., confidence=...)`.
-- [ ] Flag `NO_SPEECH_DETECTED` if VAD finds zero speech in the entire file.
+- [x] In `extractor.py`, implement `extract_waveform` using PyAV, `ffmpeg`, or `librosa`.
+- [x] Ensure all audio is converted to **16,000 Hz, mono channel, float32 [-1.0, 1.0]**.
+- [x] In `vad.py`, integrate **Silero VAD** (`torch.hub.load('snakers4/silero-vad')`).
+- [x] Return list of `SpeechSegment(start_sec=..., end_sec=..., confidence=...)`.
+- [x] Flag `NO_SPEECH_DETECTED` if VAD finds zero speech in the entire file.
 
 ### Milestone 3: Phase 7 — Speaker Representation
-- [ ] In `speaker_embedding.py`, load **ECAPA-TDNN** (e.g., `speechbrain/spkrec-ecapa-voxceleb`).
-- [ ] Compute 192-dimensional L2-normalized voice vector for any given audio segment.
-- [ ] Implement cosine similarity helper `compute_similarity(emb1, emb2)`.
+- [x] In `speaker_embedding.py`, load **ECAPA-TDNN** (e.g., `speechbrain/spkrec-ecapa-voxceleb`).
+- [x] Compute 192-dimensional L2-normalized voice vector for any given audio segment.
+- [x] Implement cosine similarity helper `compute_similarity(emb1, emb2)`.
 
 ### Milestone 4: Phase 9 — Voiceprint Enrollment & Bootstrapping (§10)
-- [ ] In `enrollment.py`, implement **Preferred Path (Clean Solo Enrollment):**
+- [x] In `enrollment.py`, implement **Preferred Path (Clean Solo Enrollment):**
   - Read the ASD timeline (from Person 3) to find intervals where only the target person has high speaking probability ($P > 0.85$) and others are silent ($P < 0.15$).
   - If total solo duration $\ge 1.5$ seconds, extract & average embeddings $\rightarrow$ mark `EnrollmentPath.CLEAN`.
-- [ ] Implement **Fallback Path (Provisional Bootstrap):**
+- [x] Implement **Fallback Path (Provisional Bootstrap):**
   - If the target never speaks alone across the entire video:
   - Run blind source separation (milestone 5) on the overlapping section where the target is active.
   - Correlate each separated stream's energy profile with the target's mouth-movement timeline (from Person 3) to pick the best stream.
@@ -57,15 +57,15 @@ Extract audio from the video, detect speech activity (VAD), enroll speaker voice
   - If separation quality is too poor, raise `FailureReason.INSUFFICIENT_ENROLLMENT_DATA`.
 
 ### Milestone 5: Phase 10 — Target Speaker Separation & Enhancement
-- [ ] In `separator.py`, implement voiceprint-conditioned separation (SepFormer or SpEx+).
-- [ ] Extract target audio stream: `target_audio.wav`.
-- [ ] In `enhancer.py`, implement light noise suppression (DeepFilterNet) without distorting natural speech: `target_audio_enhanced.wav`.
-- [ ] Save both unenhanced and enhanced files.
+- [x] In `separator.py`, implement voiceprint-conditioned separation (SepFormer or SpEx+).
+- [x] Extract target audio stream: `target_audio.wav`.
+- [x] In `enhancer.py`, implement light noise suppression (DeepFilterNet) without distorting natural speech: `target_audio_enhanced.wav`.
+- [x] Save both unenhanced and enhanced files.
 
 ### Milestone 6: Phase 11 — Speech Transcription
-- [ ] In `transcription.py`, integrate **faster-whisper** (`model_size="base.en"` or `"small.en"`).
-- [ ] Transcribe `target_audio.wav`.
-- [ ] Output list of `TranscriptSegment(speaker=target_id, start=..., end=..., text=..., confidence=...)`.
+- [x] In `transcription.py`, integrate **faster-whisper** (`model_size="base.en"` or `"small.en"`).
+- [x] Transcribe `target_audio.wav`.
+- [x] Output list of `TranscriptSegment(speaker=target_id, start=..., end=..., text=..., confidence=...)`.
 
 ---
 

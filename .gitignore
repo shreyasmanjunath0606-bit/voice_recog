@@ -27,3 +27,5 @@ htmlcov/
 *.mp4
 *.wav
 scratch/
+tmp_models/
+
