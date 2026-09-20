@@ -32,7 +32,10 @@ class ActiveSpeakerDetector:
         Returns:
             Speaking probability float in [0.0, 1.0].
         """
-        return 0.0
+        import random
+        # Mock implementation: Returns a random speaking probability
+        # In a real scenario, this would pass the face crops and audio window to TalkNet
+        return random.uniform(0.1, 0.9)
 
     def generate_speaking_timeline(
         self,
@@ -45,4 +48,25 @@ class ActiveSpeakerDetector:
         Returns:
             Dict mapping person_id to list of (start_sec, end_sec, speaking_probability).
         """
-        return {}
+        timeline = {}
+        for person_id, tracks in person_tracks.items():
+            if not tracks:
+                continue
+            
+            # Simple mock: group into 1-second chunks and assign random probability
+            start_time = tracks[0][0]
+            end_time = tracks[-1][0]
+            
+            person_timeline = []
+            current_time = start_time
+            while current_time < end_time:
+                chunk_end = min(current_time + 1.0, end_time)
+                # Random probability for the chunk
+                import random
+                prob = random.uniform(0.1, 0.9)
+                person_timeline.append((current_time, chunk_end, prob))
+                current_time = chunk_end
+                
+            timeline[person_id] = person_timeline
+            
+        return timeline

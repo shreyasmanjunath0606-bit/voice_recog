@@ -45,3 +45,35 @@ class ConfidenceEngine:
         # Scale by separation quality
         final_score = raw_score * min(1.0, max(0.2, separation_quality))
         return float(min(1.0, max(0.0, final_score)))
+
+    def diagnose_failure(
+        self,
+        face_visible_duration: float,
+        top_candidates_score_diff: float,
+        total_speech_segments: int,
+        target_asd_prob: float,
+        separation_metric: float,
+        has_enrollment_data: bool
+    ):
+        """Diagnose pipeline failures based on the Failure State Handling Contract (§23)."""
+        from speaker_focus_ai.core.types import FailureReason
+        
+        if not has_enrollment_data:
+            return FailureReason.INSUFFICIENT_ENROLLMENT_DATA
+            
+        if total_speech_segments == 0:
+            return FailureReason.NO_SPEECH_DETECTED
+            
+        if top_candidates_score_diff <= 0.08:
+            return FailureReason.AMBIGUOUS_TARGET
+            
+        if face_visible_duration < 3.0: # Face not visible for > 3 seconds logic (simplified)
+            return FailureReason.FACE_NOT_VISIBLE
+            
+        if target_asd_prob < 0.15:
+            return FailureReason.TARGET_NOT_SPEAKING
+            
+        if separation_metric < 0.35:
+            return FailureReason.LOW_SEPARATION_CONFIDENCE
+            
+        return None
