@@ -4,9 +4,22 @@ from dataclasses import dataclass, field
 from typing import Dict, Any
 
 
+def get_best_device() -> str:
+    """Automatically choose the best available hardware accelerator."""
+    try:
+        import torch
+        if torch.cuda.is_available():
+            return "cuda"
+        elif torch.backends.mps.is_available():
+            return "mps"
+    except ImportError:
+        pass
+    return "cpu"
+
+
 @dataclass
 class HardwareConfig:
-    device: str = "mps"  # "mps", "cuda", or "cpu"
+    device: str = field(default_factory=get_best_device)  # Auto-selects cuda -> mps -> cpu
     fallback_to_cpu: bool = True
     fp16: bool = True
     lazy_loading: bool = True
