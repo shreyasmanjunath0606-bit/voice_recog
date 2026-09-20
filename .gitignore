@@ -23,7 +23,8 @@ build/
 .coverage
 htmlcov/
 
-# Local media / debug artifacts
+# Local media / debug artifacts / weights
 *.mp4
 *.wav
+*.pt
 scratch/
