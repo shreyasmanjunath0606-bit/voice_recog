@@ -39,8 +39,18 @@ class SpeakerFocusPipeline:
         from speaker_focus_ai.multimodal.active_speaker import ActiveSpeakerDetector
         from speaker_focus_ai.multimodal.confidence import ConfidenceEngine
         from speaker_focus_ai.debug.visualizer import DebugVisualizer
-        import os
         
+        # New imports for actual models
+        from speaker_focus_ai.vision.person_detector import read_video_frames
+        from speaker_focus_ai.vision.tracker import MultiPersonTracker
+        from speaker_focus_ai.multimodal.target_matcher import TargetMatcher
+        from speaker_focus_ai.audio.extractor import AudioExtractor
+        from speaker_focus_ai.audio.separator import AudioSeparator
+        from speaker_focus_ai.speech.transcription import SpeechTranscriber
+        from speaker_focus_ai.core.types import FailureReason
+        import os
+        import numpy as np
+
         asd = ActiveSpeakerDetector()
         confidence_engine = ConfidenceEngine()
         
@@ -51,29 +61,66 @@ class SpeakerFocusPipeline:
         else:
             visualizer = DebugVisualizer()
 
-        # Step 1-3: Vision & Audio processing, Tracking, and Target Matching (Mocked for integration)
-        # In actual pipeline, we call Vision/Audio modules here
-        target_person_id = "person_01"  # Mocked from Vision Target Matcher
-        face_tracks = [] # Mocked
-        person_tracks_timeline = {} # Mocked
-        audio_waveform = None # Mocked from Audio Extractor
+        # Step 1: Video reading and Vision tracking
+        tracker = MultiPersonTracker()
+        for frame_idx, timestamp_sec, frame in read_video_frames(video_path):
+            tracker.track_frame(frame, frame_idx, timestamp_sec)
         
+        candidates = list(tracker.active_tracks.values())
+
+        # Step 2: Target Matching
+        matcher = TargetMatcher()
+        query = matcher.parse_description(user_instruction)
+        target_result = matcher.score_candidates(query, candidates)
+
+        target_person_id = target_result.target_person_id
+        if not target_person_id:
+            return PipelineResult(
+                target_person_id=None,
+                status=TargetStatus.NOT_FOUND,
+                failure_reason=target_result.failure_reason or FailureReason.TARGET_LOST,
+                overall_confidence=0.0
+            )
+
+        target_track = next((t for t in candidates if t.person_id == target_person_id), None)
+        face_tracks = target_track.face_sequence if target_track else []
+
+        # Step 3: Audio Extraction
+        extractor = AudioExtractor()
+        try:
+            audio_waveform, sample_rate = extractor.extract_waveform(video_path)
+        except Exception as e:
+            return PipelineResult(
+                target_person_id=target_person_id,
+                status=TargetStatus.NOT_FOUND,
+                failure_reason=FailureReason.AUDIO_VIDEO_DESYNC,
+                overall_confidence=0.0
+            )
+
         # Step 4: Active Speaker Detection
-        # asd.compute_speaking_probability(face_tracks, audio_waveform)
-        # speaking_timeline = asd.generate_speaking_timeline(person_tracks_timeline, audio_waveform)
+        target_asd_prob = asd.compute_speaking_probability(face_tracks, audio_waveform, sample_rate=sample_rate)
+
+        # Step 5: Audio Separation
+        separator = AudioSeparator()
+        target_waveform, sep_confidence = separator.separate_target(audio_waveform, sample_rate=sample_rate)
         
-        # Step 5-7: Voiceprint Enrollment, Separation, Transcription (Mocked for integration)
-        # ...
-        
-        # Step 8: Confidence estimation
-        # We would collect real metrics from the modules
+        target_audio_path = None
+        if output_dir:
+            target_audio_path = os.path.join(output_dir, "target_isolated.wav")
+            extractor.save_wav(target_waveform, sample_rate, target_audio_path)
+
+        # Step 6: Transcription
+        transcriber = SpeechTranscriber()
+        transcription = transcriber.transcribe(target_waveform, sample_rate=sample_rate, speaker_id=target_person_id)
+
+        # Step 7: Confidence estimation
         metrics = {
-            "face_visible_duration": 5.0,
+            "face_visible_duration": len(face_tracks) / 25.0,
             "top_candidates_score_diff": 0.5,
-            "total_speech_segments": 10,
-            "target_asd_prob": 0.8,
-            "separation_metric": 0.9,
-            "has_enrollment_data": True
+            "total_speech_segments": len(transcription),
+            "target_asd_prob": target_asd_prob,
+            "separation_metric": sep_confidence,
+            "has_enrollment_data": False
         }
         
         failure = confidence_engine.diagnose_failure(**metrics)
@@ -86,8 +133,12 @@ class SpeakerFocusPipeline:
             )
             
         overall_confidence = confidence_engine.calculate_confidence(
-            visual_match=0.9, speaker_match=0.9, asd_speaking_prob=0.8,
-            tracking_stability=0.9, enrollment_confidence=1.0, separation_quality=0.9
+            visual_match=target_result.confidence, 
+            speaker_match=0.5,
+            asd_speaking_prob=target_asd_prob,
+            tracking_stability=target_track.tracking_confidence if target_track else 0.5, 
+            enrollment_confidence=0.0, 
+            separation_quality=sep_confidence
         )
         
         # Clean up
@@ -96,5 +147,7 @@ class SpeakerFocusPipeline:
         return PipelineResult(
             target_person_id=target_person_id,
             status=TargetStatus.CONFIRMED,
-            overall_confidence=overall_confidence
+            overall_confidence=overall_confidence,
+            target_audio=target_audio_path,
+            transcription=transcription
         )

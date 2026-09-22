@@ -3,8 +3,15 @@
 import json
 from speaker_focus_ai.interface.api import process_video
 
-VIDEO_PATH = "test_real.mp4"
-INSTRUCTION = "the guy in the blue shirt on the left"
+import sys
+
+if len(sys.argv) < 3:
+    print("Usage: python run_demo.py <path_to_video.mp4> \"<instruction text>\"")
+    print("Example: python run_demo.py test_real.mp4 \"the guy in the blue shirt on the left\"")
+    sys.exit(1)
+
+VIDEO_PATH = sys.argv[1]
+INSTRUCTION = sys.argv[2]
 
 print("=====================================================")
 print("🤖 MAX: Speaker Focus AI - Full Pipeline Demo")
